@@ -31,6 +31,8 @@
 
 #include <inttypes.h>
 
+typedef void(*SHTDelay)(uint8_t msec);
+
 // Forward declaration
 class SHTSensorDriver;
 
@@ -137,6 +139,12 @@ public:
    */
   bool setAccuracy(SHTAccuracy newAccuracy);
 
+  /**
+   * Change the sensor accurancy, if supported by the sensor
+   * Returns true if the accuracy was changed
+   */
+  bool setDelayCallback(SHTDelay delay_cb);
+
 private:
   void cleanup();
 
@@ -158,6 +166,14 @@ public:
    * Returns false if the sensor does not support changing the accuracy
    */
   virtual bool setAccuracy(SHTSensor::SHTAccuracy newAccuracy) {
+    return false;
+  }
+
+  /**
+   * Set a custom delay callback
+   * Returns true if successfully set
+   */
+  virtual bool setDelayCallback(SHTDelay delayCB) {
     return false;
   }
 
@@ -208,7 +224,7 @@ public:
                float a, float b, float c,
                float x, float y)
       : mI2cAddress(i2cAddress), mI2cCommand(i2cCommand), mDuration(duration),
-        mA(a), mB(b), mC(c), mX(x), mY(y)
+        mA(a), mB(b), mC(c), mX(x), mY(y), mDelay(NULL)
   {
   }
 
@@ -218,6 +234,12 @@ public:
 
   virtual bool readSample();
 
+  virtual bool setDelayCallback(SHTDelay delayCB) {
+    mDelay = delayCB;
+    return true;
+  }
+
+  SHTDelay mDelay;
   uint8_t mI2cAddress;
   uint16_t mI2cCommand;
   uint8_t mDuration;
@@ -232,7 +254,7 @@ private:
   static bool readFromI2c(uint8_t i2cAddress,
                           const uint8_t *i2cCommand,
                           uint8_t commandLength, uint8_t *data,
-                          uint8_t dataLength, uint8_t duration);
+                          uint8_t dataLength, uint8_t duration, SHTDelay delay_cb);
 };
 
 class SHT3xAnalogSensor

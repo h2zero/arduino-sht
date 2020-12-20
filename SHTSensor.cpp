@@ -58,7 +58,8 @@ bool SHTI2cSensor::readFromI2c(uint8_t i2cAddress,
                                const uint8_t *i2cCommand,
                                uint8_t commandLength, uint8_t *data,
                                uint8_t dataLength,
-                               uint8_t duration)
+                               uint8_t duration,
+                               SHTDelay delayCB)
 {
   Wire.beginTransmission(i2cAddress);
   for (int i = 0; i < commandLength; ++i) {
@@ -71,7 +72,11 @@ bool SHTI2cSensor::readFromI2c(uint8_t i2cAddress,
     return false;
   }
 
-  delay(duration);
+  if (!delayCB) {
+    delay(duration);
+  } else {
+    delayCB(duration);
+  }
 
   Wire.requestFrom(i2cAddress, dataLength);
 
@@ -116,7 +121,7 @@ bool SHTI2cSensor::readSample()
   cmd[1] = mI2cCommand & 0xff;
 
   if (!readFromI2c(mI2cAddress, cmd, CMD_SIZE, data,
-                   EXPECTED_DATA_SIZE, mDuration)) {
+                   EXPECTED_DATA_SIZE, mDuration, mDelay)) {
     return false;
   }
 
@@ -271,6 +276,7 @@ bool SHTSensor::init()
       break;
     }
   }
+
   return (mSensor != NULL);
 }
 
@@ -288,6 +294,13 @@ bool SHTSensor::setAccuracy(SHTAccuracy newAccuracy)
   if (!mSensor)
     return false;
   return mSensor->setAccuracy(newAccuracy);
+}
+
+bool SHTSensor::setDelayCallback(SHTDelay delayCB)
+{
+  if (!mSensor)
+    return false;
+  return mSensor->setDelayCallback(delayCB);
 }
 
 void SHTSensor::cleanup()
